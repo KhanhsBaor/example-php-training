@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Services\AuthService;
 use App\Services\UserService;
 use App\Services\RoleRedirector;
 use Illuminate\Support\Facades\Auth;
@@ -15,9 +16,12 @@ class AuthController extends Controller
 {
     protected $userService;
 
-    public function __construct(UserService $userService)
+    protected $authService;
+
+    public function __construct(UserService $userService, AuthService $authService)
     {
         $this->userService = $userService;
+        $this->authService = $authService;
     }
 
      /**
@@ -65,22 +69,19 @@ class AuthController extends Controller
         ]);
     }
 
-    public function login_view()
+    public function loginView()
     {
         return view("auth.login");
     }
 
-    public function login_web(Request $request)
+    public function loginWeb(Request $request)
     {
-        $roleRedirector = new RoleRedirector();
-        $credentials = $request->only('email', 'password');
-
-        // Check if the user exists and the password matches
-        $user = User::where('email', $request->email)->first();
-
-        if (Auth::attempt($credentials)) {
+        $loginStatus = $this->authService->login($request->email, $request->password);
+        
+        if ($loginStatus) {
+            $roleRedirector = new RoleRedirector();
+            $user = $this->authService->user();
             $redirectPath = $roleRedirector->getRedirectPath($user);
-
             return redirect()->intended($redirectPath);
         }
         return redirect()->back()->with("alert", "Invalid email or password");
@@ -93,7 +94,7 @@ class AuthController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function register_user(StoreUserRequest $request)
+    public function registerUser(StoreUserRequest $request)
     {
         $result = $this->userService->create_user($request);
 
@@ -113,16 +114,14 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Log the user out
-        Auth::logout();
+        $this->authService->logout();
 
         // Invalidate the user's session
         $request->session()->invalidate();
-
+ 
         // Regenerate the CSRF token to prevent CSRF attacks
         $request->session()->regenerateToken();
 
-        // Redirect to the login page (or any other page)
         return redirect()->route('login-view')->with('status', 'You have been logged out!');
     }
 }

@@ -16,11 +16,11 @@ use App\Http\Controllers\AdminController;
 |
 */
 
-Route::get('/login-view', [AuthController::class, "login_view"])->name('login-view');
+Route::get('/login-view', [AuthController::class, "loginView"])->name('login-view');
 
-Route::post('/login', [AuthController::class, 'login_web']);
+Route::post('/login', [AuthController::class, 'loginWeb']);
 
-Route::post('/register', [AuthController::class, 'register_user'])->name('register-method');
+Route::post('/register', [AuthController::class, 'registerUser'])->name('register-method');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 

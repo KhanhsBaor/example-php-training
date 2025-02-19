@@ -18,13 +18,13 @@ use App\Http\Controllers\UserController;
 
 Route::middleware('auth:sanctum')->group(function () {
     // Users Requests
-    Route::prefix('/users')->group( function () {
-            Route::post('/', [UserController::class, 'store']);
-            Route::get('/', [UserController::class, 'index']);
-            Route::get('/{id}', [UserController::class, 'show']);
+    Route::prefix('/users')->controller(UserController::class)->group( function () {
+            Route::post('/', 'store');
+            Route::get('/', 'index');
+            Route::get('/{id}','show');
         }
     );
-
+    Route::get('/me', [AuthController::class, 'me']);
 });
 
 Route::post('/login', [AuthController::class, 'login']);

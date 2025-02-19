@@ -14,7 +14,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
-                        <form method="POST" action="{{ route('register-method') }}">
+                        <form method="POST" action="{{ route('register.method') }}">
                             @csrf
                             <!-- Name Field -->
                             <div class="mb-3">

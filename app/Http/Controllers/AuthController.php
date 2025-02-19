@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\StoreUserRequest;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -36,6 +37,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email'    => 'required|email',
             'password' => 'required|string|min:6',
+            'site' => 'required|in:user,admin',
         ]);
 
         if ($validator->fails()) {
@@ -50,16 +52,27 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'Unauthorized'
+                'message' => 'Invalid user or password',
+                'status' => 401
             ], 401);
         }
 
         if(!$user->email_verified_at){
             return response()->json([
-                'message' => 'user not verify yet!!'
+                'message' => 'user not verify yet!!',
+                'status' => 401
             ], 401);
         }
 
+        if ($request->site == 'admin' && !$user->role =='admin') {
+            return response()->json(['error' => 'You are not authorized as admin'], 403);
+        }
+
+        // Revoke all previous tokens to implement single login
+        $user->tokens->each(function ($token) {
+            $token->delete();
+        });
+        
         // Generate an API token using Sanctum
         $token = $user->createToken('API Token')->plainTextToken;
 
@@ -67,6 +80,24 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'token'   => $token,
         ]);
+    }
+
+    // Return authenticated user
+    public function me()
+    { 
+        $user = $this->authService->user();
+        return response()->json($user);
+    }
+
+    // Handle user logout (revoke current token)
+    public function logout(Request $request)
+     {
+        // Revoke the current token
+        $request->user()->tokens->each(function ($token) {
+            $token->delete();
+        });
+ 
+         return response()->json(['message' => 'Logged out successfully']);
     }
 
     public function loginView()
@@ -84,8 +115,9 @@ class AuthController extends Controller
             $redirectPath = $roleRedirector->getRedirectPath($user);
             return redirect()->intended($redirectPath);
         }
-        return redirect()->back()->with("alert", "Invalid email or password");
-
+        throw ValidationException::withMessages([
+            "Error" => "User or password not invalid"
+        ]);
     }
 
     /**
@@ -99,7 +131,7 @@ class AuthController extends Controller
         $result = $this->userService->create_user($request);
 
         try {
-            return redirect()->route('login-view')->with("error", "Email or password not avalible");
+            return redirect()->route('login.view')->with("error", "Email or password not avalible");
         } catch (\Throwable $th) {
             //throw $th;
         }
@@ -112,7 +144,7 @@ class AuthController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function logout(Request $request)
+    public function logoutView(Request $request)
     {
         $this->authService->logout();
 
@@ -122,6 +154,7 @@ class AuthController extends Controller
         // Regenerate the CSRF token to prevent CSRF attacks
         $request->session()->regenerateToken();
 
-        return redirect()->route('login-view')->with('status', 'You have been logged out!');
+        return redirect()->route('login.view')->with('status', 'You have been logged out!');
     }
+
 }

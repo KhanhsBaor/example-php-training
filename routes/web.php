@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,14 +17,11 @@ use App\Http\Controllers\AdminController;
 |
 */
 
-Route::get('/login-view', [AuthController::class, "loginView"])->name('login-view');
+Route::get('/login', [AuthController::class, "loginView"])->name('login.view');
 
-Route::post('/login', [AuthController::class, 'loginWeb']);
-
-Route::post('/register', [AuthController::class, 'registerUser'])->name('register-method');
-
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
+Route::post('/login', [AuthController::class, 'loginWeb'])->name('login.method');
+Route::post('/register', [AuthController::class, 'registerUser'])->name('register.method');
+Route::post('/logout', [AuthController::class, 'logoutView'])->name('logout.method');
 
 
 Route::middleware(["check.session", "is_admin", "no.cache" ])->group(function () {
@@ -38,15 +36,9 @@ Route::middleware(["check.session", "no.cache"])->group(function () {
     });
 });
 
-
-
 Route::get('/register-view', function () {
     return view('auth.register');
-})->name('register-view');
+})->name('register.view');
 
-
-
-Route::get('/', function () {
-    return redirect('/login-view');
-});
+Route::get('/', [DashboardController::class, 'index']);
 

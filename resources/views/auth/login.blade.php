@@ -12,7 +12,7 @@
         <div class="card p-4 shadow-lg" style="width: 400px;">
             <h3 class="text-center mb-4">Login</h3>
             <!-- Form login -->
-            <form method="post" action="/login">
+            <form method="post" action="{{ route('login.method') }}">
                 @csrf
                 <!-- Email Input -->
                 <div class="mb-3">
@@ -46,7 +46,7 @@
 
             <!-- Additional Links -->
             <div class="mt-3 text-center">
-                <p>Don't have an account? <a href="{{ route('register-view') }}">Register here</a></p>
+                <p>Don't have an account? <a href="{{ route('register.view') }}">Register here</a></p>
                 <p><a >Forgot your password?</a></p>
             </div>
         </div>

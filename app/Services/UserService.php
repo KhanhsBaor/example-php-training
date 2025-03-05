@@ -15,11 +15,7 @@ class UserService implements UserInterface
      */
     public function createUser(StoreUserRequest $request): User
     {
-        $user = User::create([
-            'name'     =>   $request->name,
-            'email'    =>   $request->email,
-            'password' =>   bcrypt($request->password),
-        ]);
+        $user = User::create($request->validated());
 
         // Your shared logic here
         return $user;

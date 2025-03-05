@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\Auth;
 
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuthService;
 use App\Services\UserService;
 use App\Services\RoleRedirector;
+use App\Http\Requests\LoginRequest;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\StoreUserRequest;
@@ -23,6 +25,8 @@ class AuthController extends Controller
     {
         $this->userService = $userService;
         $this->authService = $authService;
+        $this->middleware('auth:api', ['except' => ['login']]);
+
     }
 
      /**
@@ -31,54 +35,72 @@ class AuthController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        // Validate the incoming request data
-        $validator = Validator::make($request->all(), [
-            'email'    => 'required|email',
-            'password' => 'required|string|min:6',
-            'site' => 'required|in:user,admin',
-        ]);
+        $token = auth()->attempt($request->validated());
 
-        if ($validator->fails()) {
+        if($token) {
+            return $this->responseWithToken($token, auth()->user());
+        } else {
             return response()->json([
-                'message' => 'Validation error',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
-
-        // Check if the user exists and the password matches
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'Invalid user or password',
-                'status' => 401
+                'status' => 'failed',
+                'message' => 'Invalid credentials'
             ], 401);
         }
+        // // Validate the incoming request data
+        // $validator = Validator::make($request->all(), [
+        //     'email'    => 'required|email',
+        //     'password' => 'required|string|min:6',
+        //     'site' => 'required|in:user,admin',
+        // ]);
 
-        if(!$user->email_verified_at){
-            return response()->json([
-                'message' => 'user not verify yet!!',
-                'status' => 401
-            ], 401);
-        }
+        // if ($validator->fails()) {
+        //     return response()->json([
+        //         'message' => 'Validation error',
+        //         'errors'  => $validator->errors()
+        //     ], 422);
+        // }
 
-        if ($request->site == 'admin' && !$user->role =='admin') {
-            return response()->json(['error' => 'You are not authorized as admin'], 403);
-        }
+        // // Check if the user exists and the password matches
+        // $user = User::where('email', $request->email)->first();
 
-        // Revoke all previous tokens to implement single login
-        $user->tokens->each(function ($token) {
-            $token->delete();
-        });
+        // if (!$user || !Hash::check($request->password, $user->password)) {
+        //     return response()->json([
+        //         'message' => 'Invalid user or password',
+        //         'status' => 401
+        //     ], 401);
+        // }
+
+        // if(!$user->email_verified_at){
+        //     return response()->json([
+        //         'message' => 'user not verify yet!!',
+        //         'status' => 401
+        //     ], 401);
+        // }
+
+        // if ($request->site == 'admin' && !$user->role =='admin') {
+        //     return response()->json(['error' => 'You are not authorized as admin'], 403);
+        // }
+
+        // // Revoke all previous tokens to implement single login
+        // $user->tokens->each(function ($token) {
+        //     $token->delete();
+        // });
         
-        // Generate an API token using Sanctum
-        $token = $user->createToken('API Token')->plainTextToken;
+        // // Generate an API token using Sanctum
+        // $token = $user->createToken('API Token')->plainTextToken;
 
+        // return response()->json([
+        //     'message' => 'Login successful',
+        //     'token'   => $token,
+        // ]);
+    }
+
+    public function responseWithToken($token, $user){
         return response()->json([
-            'message' => 'Login successful',
-            'token'   => $token,
+            'status' => 'success',
+            'user' => $user,
+            'access_token' => $token,
         ]);
     }
 
